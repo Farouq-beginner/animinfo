@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import '../services/anime_api_service.dart';
 import '../models/anime.dart';
 
@@ -23,7 +25,32 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Anime Detail')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
+        title: const Text('Anime Detail'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.link),
+            tooltip: 'Copy link',
+            onPressed: () {
+              final link = '${Uri.base.origin}/home/anime/${widget.malId}';
+              Clipboard.setData(ClipboardData(text: link));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Copied link: $link')),
+              );
+            },
+          )
+        ],
+      ),
       body: FutureBuilder<Anime>(
         future: _futureAnime,
         builder: (context, snapshot) {

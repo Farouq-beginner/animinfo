@@ -5,6 +5,32 @@ A new Flutter project.
 ## Getting Started
 
 This project is a starting point for a Flutter application.
+## Deep Links / Shareable Anime URLs
+
+The app now supports direct navigation to an anime detail page via a path URL (hashless on web):
+
+```
+/home/anime/<malId>
+```
+
+Example: `https://your-domain.com/home/anime/5114` will open the detail page for the anime with MyAnimeList ID `5114`.
+
+When you open a deep link before the splash has finished, the app will show the splash screen first, then automatically continue to the requested anime detail.
+
+Each anime card and the detail page app bar include a copy-link button (🔗) that places the full shareable URL in the clipboard.
+
+If hosting on a static server, be sure to configure a rewrite of all unknown paths to `index.html` so deep links work after refresh. Example Nginx snippet:
+
+```
+location / {
+	try_files $uri $uri/ /index.html;
+}
+```
+
+## Web Path Strategy
+
+Flutter web hash (`/#/`) was removed using `setUrlStrategy(PathUrlStrategy())` in `main.dart` for cleaner URLs.
+
 
 A few resources to get you started if this is your first Flutter project:
 

@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../services/anime_api_service.dart';
 import '../models/anime.dart';
 import '../models/anime_page.dart';
-import 'anime_detail_page.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 
 class AnimeListPage extends StatefulWidget {
   const AnimeListPage({super.key});
@@ -106,12 +107,7 @@ class _AnimeListPageState extends State<AnimeListPage> {
         final anime = _items[index];
         return GestureDetector(
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => AnimeDetailPage(malId: anime.malId),
-              ),
-            );
+            context.go('/home/anime/${anime.malId}');
           },
           child: Card(
             clipBehavior: Clip.antiAlias,
@@ -126,10 +122,32 @@ class _AnimeListPageState extends State<AnimeListPage> {
                 ),
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text(
-                    anime.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        anime.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height:4),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.link,size:18),
+                            tooltip: 'Copy link',
+                            onPressed: () {
+                              final link = '${Uri.base.origin}/home/anime/${anime.malId}';
+                              // Clipboard import lightweight: use Clipboard from services
+                              Clipboard.setData(ClipboardData(text: link));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Copied link: $link')),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
