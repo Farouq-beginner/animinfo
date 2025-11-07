@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:go_router/go_router.dart';
-import 'pages/anime_list_page.dart';
-import 'pages/anime_detail_page.dart';
+import 'homepages/anime_list_page.dart';
+import 'homepages/anime_detail_page.dart';
 import 'splashscreen/splash_screen.dart';
 import 'router/splash_state.dart';
 
