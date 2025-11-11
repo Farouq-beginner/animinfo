@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:sizer/sizer.dart';
 import 'package:dio/dio.dart';
@@ -36,6 +38,11 @@ void main() async {
   };
 
   await sl.init();
+
+  // Use path-based URL strategy on web to remove '/#/' from routes
+  if (kIsWeb) {
+    setUrlStrategy(PathUrlStrategy());
+  }
   runApp(const MyApp());
 }
 

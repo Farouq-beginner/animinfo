@@ -19,7 +19,7 @@ class SplashBloc extends Bloc<SplashEvent, SplashState> {
       Emitter<SplashState> emit,
       ) async {
     emit(SplashLoading());
-    await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 5));
 
     final result = await getCurrentUser(NoParams());
     result.fold(
