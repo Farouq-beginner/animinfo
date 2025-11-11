@@ -7,13 +7,19 @@ import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/responsive_center_layout.dart';
 
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
+  RegisterPage({super.key});
+
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-
-  RegisterPage({super.key});
+  bool _passwordVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +99,13 @@ class RegisterPage extends StatelessWidget {
                     CustomTextField(
                       controller: _passwordController,
                       labelText: 'Password',
-                      obscureText: true,
+                      obscureText: !_passwordVisible,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your password';

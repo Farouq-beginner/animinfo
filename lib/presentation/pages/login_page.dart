@@ -7,12 +7,18 @@ import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/responsive_center_layout.dart'; // IMPORT WIDGET BARU
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
+  LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-
-  LoginPage({super.key});
+  bool _passwordVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +86,13 @@ class LoginPage extends StatelessWidget {
                     CustomTextField(
                       controller: _passwordController,
                       labelText: 'Password',
-                      obscureText: true,
+                      obscureText: !_passwordVisible,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                        ),
+                        onPressed: () => setState(() => _passwordVisible = !_passwordVisible),
+                      ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your password';

@@ -35,68 +35,90 @@ class SplashView extends StatelessWidget {
       },
       child: Scaffold(
         backgroundColor: Colors.blue[900],
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo
-              Container(
-                width: 30.w,
-                height: 30.w,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(15.w),
-                ),
-                child: Center(
-                  child: Text(
-                    'A',
-                    style: TextStyle(
-                      fontSize: 20.w,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[900],
+        body: Stack(
+          children: [
+            // Center content
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo
+                  Container(
+                    width: 30.w,
+                    height: 30.w,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15.w),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'A',
+                        style: TextStyle(
+                          fontSize: 20.w,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue[900],
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  SizedBox(height: 2.h),
+                  Text(
+                    AppConstants.appName,
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 3.h),
+                  // Loading indicator with text
+                  BlocBuilder<SplashBloc, SplashState>(
+                    builder: (context, state) {
+                      if (state is SplashLoading) {
+                        return Column(
+                          children: [
+                            SizedBox(
+                              width: 40.w,
+                              child: LinearProgressIndicator(
+                                backgroundColor: Colors.blue[700],
+                                valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            ),
+                            SizedBox(height: 1.h),
+                            Text(
+                              'Loading...',
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: Colors.white70,
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ],
               ),
-              SizedBox(height: 2.h),
-              Text(
-                AppConstants.appName,
+            ),
+
+            // Footer credit at bottom
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 2.h,
+              child: Text(
+                'BY KELOMPOK 5',
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 24.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.w300,
+                  color: Colors.white70,
+                  letterSpacing: 2,
                 ),
               ),
-              SizedBox(height: 3.h),
-              // Loading indicator with text
-              BlocBuilder<SplashBloc, SplashState>(
-                builder: (context, state) {
-                  if (state is SplashLoading) {
-                    return Column(
-                      children: [
-                        SizedBox(
-                          width: 40.w,
-                          child: LinearProgressIndicator(
-                            backgroundColor: Colors.blue[700],
-                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        ),
-                        SizedBox(height: 1.h),
-                        Text(
-                          'Loading...',
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: Colors.white70,
-                          ),
-                        ),
-                      ],
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
