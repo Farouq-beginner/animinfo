@@ -7,6 +7,7 @@ import '../widgets/anime_card.dart';
 import '../widgets/loading_widget.dart';
 import '../../core/constants/app_constants.dart';
 import '../../domain/entities/anime.dart';
+import '../blocs/authentication/authentication_bloc.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -79,7 +80,173 @@ class _HomePageState extends State<HomePage> {
         },
         builder: (context, state) {
           print('🏠 HomePage: Building content for state ${state.runtimeType}');
-          return _buildContent(state);
+          return _buildScrollableBody(state);
+        },
+      ),
+    );
+  }
+
+  Widget _buildScrollableBody(AnimeState state) {
+    // Build a single scrollable that includes the welcome card so it scrolls away with content.
+    if (state is AnimeLoading || state is AnimeInitial) {
+      return RefreshIndicator(
+        onRefresh: () async {
+          context.read<AnimeBloc>().add(GetTopAnimeEvent());
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: _buildWelcomeCard()),
+            SliverToBoxAdapter(child: SizedBox(height: 1.h)),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: const LoadingWidget(),
+            ),
+          ],
+        ),
+      );
+    } else if (state is TopAnimeLoaded) {
+      if (state.animeList.isEmpty) {
+        return RefreshIndicator(
+          onRefresh: () async {
+            context.read<AnimeBloc>().add(GetTopAnimeEvent());
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(child: _buildWelcomeCard()),
+              SliverToBoxAdapter(child: SizedBox(height: 1.h)),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _buildEmptyState('No anime found'),
+              ),
+            ],
+          ),
+        );
+      }
+      return RefreshIndicator(
+        onRefresh: () async {
+          context.read<AnimeBloc>().add(GetTopAnimeEvent());
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: _buildWelcomeCard()),
+            SliverPadding(
+              padding: EdgeInsets.all(2.w),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 200,
+                  childAspectRatio: 0.7,
+                  crossAxisSpacing: 8, // will be scaled by padding above
+                  mainAxisSpacing: 8,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) {
+                    final anime = state.animeList[index];
+                    print('🏠 HomePage: Building anime card for index $index');
+                    return AnimeCard(
+                      anime: anime,
+                      onTap: () {
+                        print('🏠 HomePage: Tapped anime with ID ${anime.malId}');
+                        context.push('/detail', extra: anime.malId);
+                      },
+                    );
+                  },
+                  childCount: state.animeList.length,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (state is AnimeError) {
+      return RefreshIndicator(
+        onRefresh: () async {
+          context.read<AnimeBloc>().add(GetTopAnimeEvent());
+        },
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(child: _buildWelcomeCard()),
+            SliverToBoxAdapter(child: SizedBox(height: 1.h)),
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: _buildErrorState(state.message),
+            ),
+          ],
+        ),
+      );
+    }
+    // Fallback
+    _fetchAnime();
+    return const LoadingWidget();
+  }
+
+  Widget _buildWelcomeCard() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(4.w, 2.h, 4.w, 1.h),
+      child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
+        builder: (context, authState) {
+          String name = 'User';
+          if (authState is AuthenticationAuthenticated) {
+            name = authState.user.username;
+          }
+          return Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            clipBehavior: Clip.antiAlias,
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+                ),
+              ),
+              padding: EdgeInsets.symmetric(horizontal: 5.w, vertical: 2.2.h),
+              child: Row(
+                children: [
+                  Container(
+                    width: 12.w,
+                    height: 12.w,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12.w),
+                    ),
+                    child: const Icon(Icons.movie, color: Color(0xFF0D47A1)),
+                  ),
+                  SizedBox(width: 4.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 13.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: 0.6.h),
+                        Text(
+                          name,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 19.sp,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.2,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
         },
       ),
     );
@@ -136,7 +303,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
   Widget _buildEmptyState(String message) {
     // ... (Fungsi ini biarkan sama) ...
     print('🏠 HomePage: Building empty state: $message');
