@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
+import 'dart:math';
 import '../blocs/authentication/authentication_bloc.dart';
-import '../widgets/responsive_center_layout.dart'; // IMPORT INI
+import '../widgets/responsive_center_layout.dart'; // Responsive wrapper
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -16,27 +17,64 @@ class ProfilePage extends StatelessWidget {
         backgroundColor: Colors.blue[900],
         foregroundColor: Colors.white,
       ),
-      // BUNGKUS: Body dengan ResponsiveCenterLayout
-      body: ResponsiveCenterLayout(
-        child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
-          builder: (context, state) {
-            if (state is AuthenticationAuthenticated) {
-              final user = state.user;
-              return Padding(
-                padding: EdgeInsets.all(5.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Profile Header
-                    Center(
+      // Scrollbar melekat di sisi kanan viewport, konten tetap center
+      body: Scrollbar(
+        thumbVisibility: true,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: ResponsiveCenterLayout(
+            child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
+              builder: (context, state) {
+                if (state is AuthenticationAuthenticated) {
+                  return _buildResponsiveProfile(state);
+                }
+                if (state is AuthenticationUnauthenticated) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    context.go('/login');
+                  });
+                  return const Center(child: Text('Logging out...'));
+                }
+                return const Center(child: CircularProgressIndicator());
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResponsiveProfile(AuthenticationAuthenticated state) {
+    final user = state.user;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 900; // breakpoint
+        final avatarRadius = min(10.w, isWide ? 6.h : 10.w);
+        final sidePadding = isWide ? EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.h) : EdgeInsets.all(5.w);
+
+        if (isWide) {
+          // Two-column layout
+          return Padding(
+            padding: sidePadding,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left: Profile summary card
+                Flexible(
+                  flex: 4,
+                  child: Card(
+                    elevation: 6,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 3.h),
                       child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           CircleAvatar(
-                            radius: 10.w,
+                            radius: avatarRadius,
                             backgroundColor: Colors.blue[200],
                             child: Icon(
                               Icons.person,
-                              size: 10.w,
+                              size: avatarRadius,
                               color: Colors.blue[900],
                             ),
                           ),
@@ -44,78 +82,141 @@ class ProfilePage extends StatelessWidget {
                           Text(
                             user.username,
                             style: TextStyle(
-                              fontSize: 20.sp,
+                              fontSize: 19.sp,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 0.5.h),
+                          SizedBox(height: 0.8.h),
                           Text(
                             user.email,
                             style: TextStyle(
-                              fontSize: 14.sp,
+                              fontSize: 12.sp,
                               color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 4.w),
+                // Right: Account info and actions
+                Flexible(
+                  flex: 6,
+                  child: Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 3.h),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Account Information',
+                            style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(height: 2.h),
+                          _buildInfoRow('Username', user.username),
+                          _buildInfoRow('Email', user.email),
+                          _buildInfoRow('User ID', user.id.toString()),
+                          SizedBox(height: 3.h),
+                          Align(
+                            alignment: Alignment.bottomRight,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _showLogoutDialog(context),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red,
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.8.h),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: const Icon(Icons.logout),
+                              label: Text('Logout', style: TextStyle(fontSize: 12.sp)),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    SizedBox(height: 5.h),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
 
-                    // Account Information
-                    Text(
-                      'Account Information',
-                      style: TextStyle(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.bold,
+        // Mobile / narrow layout
+        return Padding(
+          padding: sidePadding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: avatarRadius,
+                      backgroundColor: Colors.blue[200],
+                      child: Icon(
+                        Icons.person,
+                        size: avatarRadius,
+                        color: Colors.blue[900],
                       ),
                     ),
                     SizedBox(height: 2.h),
-                    _buildInfoRow('Username', user.username),
-                    _buildInfoRow('Email', user.email),
-                    _buildInfoRow('User ID', user.id.toString()),
-
-                    const Spacer(),
-
-                    // Logout Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _showLogoutDialog(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 2.h),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                        child: Text(
-                          'Logout',
-                          style: TextStyle(fontSize: 16.sp),
-                        ),
+                    Text(
+                      user.username,
+                      style: TextStyle(
+                        fontSize: 20.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 0.5.h),
+                    Text(
+                      user.email,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ],
                 ),
-              );
-            }
-            // TAMBAHKAN: State jika user logout
-            if (state is AuthenticationUnauthenticated) {
-              // Kirim user ke halaman login jika mereka logout
-              // (GoRouter akan menangani ini saat state berubah)
-              // Tampilkan loading sementara
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                context.go('/login');
-              });
-              return const Center(child: Text('Logging out...'));
-            }
-            // State loading atau initial
-            return const Center(child: CircularProgressIndicator());
-          },
-        ),
-      ),
+              ),
+              SizedBox(height: 5.h),
+              Text(
+                'Account Information',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              _buildInfoRow('Username', user.username),
+              _buildInfoRow('Email', user.email),
+              _buildInfoRow('User ID', user.id.toString()),
+              SizedBox(height: 4.h),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _showLogoutDialog(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 2.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(
+                    'Logout',
+                    style: TextStyle(fontSize: 16.sp),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

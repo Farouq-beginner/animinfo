@@ -214,7 +214,11 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12.w),
                     ),
-                    child: const Icon(Icons.movie, color: Color(0xFF0D47A1)),
+                    child: Icon(
+                      Icons.person_outline,
+                      size: 10.w,
+                      color:Color(0xFF0D47A1)
+                    ),
                   ),
                   SizedBox(width: 4.w),
                   Expanded(
@@ -225,7 +229,7 @@ class _HomePageState extends State<HomePage> {
                           'Welcome',
                           style: TextStyle(
                             color: Colors.white70,
-                            fontSize: 13.sp,
+                            fontSize: 18.sp,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
