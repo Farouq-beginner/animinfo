@@ -3,13 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
-import '../blocs/anime/anime_bloc.dart';
+import 'package:auto_size_text/auto_size_text.dart'; // IMPORT BARU
+// Import Cubit dan State
+import '../blocs/anime/anime_cubit.dart';
+import '../blocs/anime/anime_state.dart';
 import '../widgets/loading_widget.dart';
 import '../../core/utils/app_prefs.dart';
 import '../widgets/responsive_center_layout.dart';
 
 class AnimeDetailPage extends StatefulWidget {
-  // PERBAIKAN: Terima animeId dari constructor
   final int animeId;
 
   const AnimeDetailPage({
@@ -23,25 +25,17 @@ class AnimeDetailPage extends StatefulWidget {
 
 class _AnimeDetailPageState extends State<AnimeDetailPage> {
   final AppPreferences _appPreferences = sl<AppPreferences>();
-  // HAPUS: _animeId tidak perlu lagi di sini
 
   @override
   void initState() {
     super.initState();
-    // PERBAIKAN: Panggil event di initState
-    // Kita bisa akses BLoC-nya sendiri dan 'widget.animeId'
     print('📄 DetailPage: Fetching details for anime ID: ${widget.animeId}');
-    context.read<AnimeBloc>().add(GetAnimeDetailsEvent(widget.animeId));
+    context.read<AnimeCubit>().getAnimeDetails(widget.animeId);
   }
-
-  // HAPUS: Seluruh fungsi didChangeDependencies()
 
   @override
   Widget build(BuildContext context) {
-    // HAPUS: Cek _animeId == null
-
-    // PERBAIKAN: Gunakan widget.animeId
-    final isFavorite = _appPreferences.isFavorite(widget.animeId);
+    bool isFavorite = _appPreferences.isFavorite(widget.animeId);
 
     return Scaffold(
       appBar: AppBar(
@@ -55,40 +49,44 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           },
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: isFavorite ? Colors.red : Colors.white,
-            ),
-            onPressed: () async {
-              if (isFavorite) {
-                await _appPreferences.removeFavorite(widget.animeId);
-              } else {
-                await _appPreferences.saveFavorite(widget.animeId);
-              }
-              setState(() {});
+          StatefulBuilder(
+            builder: (context, setStateIcon) {
+              return IconButton(
+                icon: Icon(
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite ? Colors.red : Colors.white,
+                ),
+                onPressed: () async {
+                  if (isFavorite) {
+                    await _appPreferences.removeFavorite(widget.animeId);
+                  } else {
+                    await _appPreferences.saveFavorite(widget.animeId);
+                  }
+                  setStateIcon(() {
+                    isFavorite = !isFavorite;
+                  });
+                },
+              );
             },
           ),
         ],
       ),
       body: ResponsiveCenterLayout(
-        child: BlocBuilder<AnimeBloc, AnimeState>(
+        child: BlocBuilder<AnimeCubit, AnimeState>(
           builder: (context, state) {
-            // PERBAIKAN: state Awal adalah AnimeInitial
             if (state is AnimeLoading || state is AnimeInitial) {
               return const LoadingWidget();
             } else if (state is AnimeDetailsLoaded) {
-              // PERBAIKAN: Hapus pengecekan state.anime.malId != _animeId
-              // Pengecekan itu tidak perlu lagi karena BLoC ini hanya untuk halaman ini
-
               final anime = state.anime;
-              print('📄 DetailPage: Displaying anime: ${anime.title}');
+              final genres = anime.genres ?? [];
+              final studios = anime.studios ?? [];
+
               return SingleChildScrollView(
                 padding: EdgeInsets.all(3.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Cover Image
+                    // --- 1. COVER IMAGE ---
                     Center(
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(10),
@@ -98,7 +96,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                           width: double.infinity,
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
-                            print('❌ Error loading image: $error');
                             return Container(
                               height: 40.h,
                               width: double.infinity,
@@ -111,14 +108,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                                     size: 10.w,
                                     color: Colors.grey[600],
                                   ),
-                                  SizedBox(height: 1.h),
-                                  Text(
-                                    'Image not available',
-                                    style: TextStyle(
-                                      fontSize: 12.sp,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
                                 ],
                               ),
                             );
@@ -130,12 +119,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                               width: double.infinity,
                               color: Colors.grey[200],
                               child: Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                      : null,
-                                ),
+                                child: CircularProgressIndicator(),
                               ),
                             );
                           },
@@ -144,7 +128,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                     ),
                     SizedBox(height: 2.h),
 
-                    // Title
+                    // --- 2. TITLE ---
                     Text(
                       anime.title,
                       style: TextStyle(
@@ -175,28 +159,26 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                     ],
                     SizedBox(height: 2.h),
 
-                    // Information (Chip)
-                    Row(
+                    // --- 3. INFO ROW (Type, Eps, Status) ---
+                    Wrap( // Gunakan Wrap agar aman jika layar sempit
+                      spacing: 2.w,
+                      runSpacing: 1.h,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        if (anime.type != null) ...[
+                        if (anime.type != null)
                           _buildInfoChip(anime.type!),
-                          SizedBox(width: 2.w),
-                        ],
-                        if (anime.episodes != null) ...[
+                        if (anime.episodes != null)
                           _buildInfoChip('${anime.episodes} eps'),
-                          SizedBox(width: 2.w),
-                        ],
-                        if (anime.status != null) ...[
+                        if (anime.status != null)
                           _buildInfoChip(anime.status!),
-                        ],
                       ],
                     ),
                     SizedBox(height: 2.h),
 
-                    // Score and Rank
-                    Row(
-                      children: [
-                        if (anime.score != null) ...[
+                    // --- 4. SCORE ---
+                    if (anime.score != null)
+                      Row(
+                        children: [
                           Icon(Icons.star, color: Colors.amber, size: 5.w),
                           SizedBox(width: 1.w),
                           Text(
@@ -207,23 +189,10 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                             ),
                           ),
                         ],
-                        if (anime.rank != null) ...[
-                          SizedBox(width: 3.w),
-                          Icon(Icons.trending_up, color: Colors.green, size: 5.w),
-                          SizedBox(width: 1.w),
-                          Text(
-                            '#${anime.rank}',
-                            style: TextStyle(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ], // <-- PERBAIKAN DI SINI (sebelumnya '}')
-                    ),
+                      ),
                     SizedBox(height: 2.h),
 
-                    // Synopsis
+                    // --- 5. SYNOPSIS ---
                     Text(
                       'Synopsis',
                       style: TextStyle(
@@ -238,33 +207,8 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                     ),
                     SizedBox(height: 2.h),
 
-                    // Additional Information
-                    if (anime.year != null || anime.season != null) ...[
-                      Text(
-                        'Information',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 1.h),
-                      if (anime.year != null)
-                        _buildInfoRow('Year', anime.year.toString()),
-                      if (anime.season != null)
-                        _buildInfoRow('Season', anime.season!),
-                      if (anime.source != null)
-                        _buildInfoRow('Source', anime.source!),
-                      if (anime.aired != null)
-                        _buildInfoRow('Aired', anime.aired!),
-                      if (anime.duration != null)
-                        _buildInfoRow('Duration', anime.duration!),
-                      if (anime.rating != null)
-                        _buildInfoRow('Rating', anime.rating!),
-                      SizedBox(height: 2.h),
-                    ],
-
-                    // Genres
-                    if (anime.genres != null && anime.genres!.isNotEmpty) ...[
+                    // --- 6. GENRES ---
+                    if (genres.isNotEmpty) ...[
                       Text(
                         'Genres',
                         style: TextStyle(
@@ -274,37 +218,17 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                       ),
                       SizedBox(height: 1.h),
                       Wrap(
-                        spacing: 1.w,
+                        spacing: 2.w, // Spacing sedikit diperbesar
                         runSpacing: 1.h,
-                        children: anime.genres!.map((genre) {
+                        children: genres.map((genre) {
                           return _buildInfoChip(genre.name);
                         }).toList(),
                       ),
                       SizedBox(height: 2.h),
                     ],
 
-                    // Producers
-                    if (anime.producers != null && anime.producers!.isNotEmpty) ...[
-                      Text(
-                        'Producers',
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 1.h),
-                      Wrap(
-                        spacing: 1.w,
-                        runSpacing: 1.h,
-                        children: anime.producers!.map((producer) {
-                          return _buildInfoChip(producer.name);
-                        }).toList(),
-                      ),
-                      SizedBox(height: 2.h),
-                    ],
-
-                    // Studios
-                    if (anime.studios != null && anime.studios!.isNotEmpty) ...[
+                    // --- 7. STUDIOS ---
+                    if (studios.isNotEmpty) ...[
                       Text(
                         'Studios',
                         style: TextStyle(
@@ -314,14 +238,15 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                       ),
                       SizedBox(height: 1.h),
                       Wrap(
-                        spacing: 1.w,
+                        spacing: 2.w,
                         runSpacing: 1.h,
-                        children: anime.studios!.map((studio) {
+                        children: studios.map((studio) {
                           return _buildInfoChip(studio.name);
                         }).toList(),
                       ),
                       SizedBox(height: 2.h),
                     ],
+                    SizedBox(height: 50),
                   ],
                 ),
               );
@@ -332,14 +257,11 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                   children: [
                     Text(
                       'Error: ${state.message}',
-                      style: TextStyle(fontSize: 16.sp),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 2.h),
                     ElevatedButton(
                       onPressed: () {
-                        // PERBAIKAN: Gunakan widget.animeId
-                        context.read<AnimeBloc>().add(GetAnimeDetailsEvent(widget.animeId));
+                        context.read<AnimeCubit>().getAnimeDetails(widget.animeId);
                       },
                       child: const Text('Retry'),
                     ),
@@ -347,7 +269,6 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
                 ),
               );
             }
-            // Fallback
             return const LoadingWidget();
           },
         ),
@@ -355,19 +276,24 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
     );
   }
 
+  // --- PERBAIKAN UTAMA PADA FUNGSI INI ---
   Widget _buildInfoChip(String text) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 0.5.h),
+      // Padding diperbesar agar chip terlihat lebih lega
+      padding: EdgeInsets.symmetric(horizontal: 3.5.w, vertical: 0.8.h),
       decoration: BoxDecoration(
         color: Colors.blue[100],
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(
+      child: AutoSizeText( // Gunakan AutoSizeText agar aman di Web
         text,
         style: TextStyle(
-          fontSize: 13.sp,
+          fontSize: 12.sp, // Ukuran font diperbesar
+          fontWeight: FontWeight.w500, // Sedikit lebih tebal
           color: Colors.blue[900],
         ),
+        maxLines: 1,
+        minFontSize: 10,
       ),
     );
   }
@@ -379,7 +305,7 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 20.w,
+            width: 25.w,
             child: Text(
               '$label:',
               style: TextStyle(

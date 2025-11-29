@@ -3,8 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
 import 'dart:math';
-import '../blocs/authentication/authentication_bloc.dart';
-import '../widgets/responsive_center_layout.dart'; // Responsive wrapper
+import '../blocs/authentication/authentication_cubit.dart';
+import '../blocs/authentication/authentication_state.dart';
+import '../widgets/responsive_center_layout.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -17,16 +18,15 @@ class ProfilePage extends StatelessWidget {
         backgroundColor: Colors.blue[900],
         foregroundColor: Colors.white,
       ),
-      // Scrollbar melekat di sisi kanan viewport, konten tetap center
       body: Scrollbar(
         thumbVisibility: true,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: ResponsiveCenterLayout(
-            child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
+            child: BlocBuilder<AuthenticationCubit, AuthenticationState>(
               builder: (context, state) {
                 if (state is AuthenticationAuthenticated) {
-                  return _buildResponsiveProfile(state);
+                  return _buildResponsiveProfile(context, state);
                 }
                 if (state is AuthenticationUnauthenticated) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -43,22 +43,21 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildResponsiveProfile(AuthenticationAuthenticated state) {
+  Widget _buildResponsiveProfile(BuildContext context, AuthenticationAuthenticated state) {
     final user = state.user;
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 900; // breakpoint
+        final isWide = constraints.maxWidth >= 900;
         final avatarRadius = min(10.w, isWide ? 6.h : 10.w);
         final sidePadding = isWide ? EdgeInsets.symmetric(horizontal: 4.w, vertical: 3.h) : EdgeInsets.all(5.w);
 
         if (isWide) {
-          // Two-column layout
+          // Layout Web
           return Padding(
             padding: sidePadding,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Left: Profile summary card
                 Flexible(
                   flex: 4,
                   child: Card(
@@ -101,7 +100,6 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
                 SizedBox(width: 4.w),
-                // Right: Account info and actions
                 Flexible(
                   flex: 6,
                   child: Card(
@@ -121,19 +119,33 @@ class ProfilePage extends StatelessWidget {
                           _buildInfoRow('Email', user.email),
                           _buildInfoRow('User ID', user.id.toString()),
                           SizedBox(height: 3.h),
-                          Align(
-                            alignment: Alignment.bottomRight,
-                            child: ElevatedButton.icon(
-                              onPressed: () => _showLogoutDialog(context),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.8.h),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+
+                          // TOMBOL MENU
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              // Tombol About Us
+                              OutlinedButton.icon(
+                                onPressed: () {
+                                  context.push('/about');
+                                },
+                                icon: const Icon(Icons.info_outline),
+                                label: const Text('About Us'),
                               ),
-                              icon: const Icon(Icons.logout),
-                              label: Text('Logout', style: TextStyle(fontSize: 12.sp)),
-                            ),
+                              SizedBox(width: 2.w),
+                              // Tombol Logout
+                              ElevatedButton.icon(
+                                onPressed: () => _showLogoutDialog(context),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.symmetric(horizontal: 3.w, vertical: 1.8.h),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                                icon: const Icon(Icons.logout),
+                                label: Text('Logout', style: TextStyle(fontSize: 12.sp)),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -145,7 +157,7 @@ class ProfilePage extends StatelessWidget {
           );
         }
 
-        // Mobile / narrow layout
+        // Layout Mobile
         return Padding(
           padding: sidePadding,
           child: Column(
@@ -194,7 +206,28 @@ class ProfilePage extends StatelessWidget {
               _buildInfoRow('Username', user.username),
               _buildInfoRow('Email', user.email),
               _buildInfoRow('User ID', user.id.toString()),
+
               SizedBox(height: 4.h),
+
+              // Tombol About Us
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    context.push('/about');
+                  },
+                  icon: const Icon(Icons.info_outline),
+                  label: const Text('About Us'),
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 1.8.h),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 2.h),
+
+              // Tombol Logout
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -202,7 +235,7 @@ class ProfilePage extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 2.h),
+                    padding: EdgeInsets.symmetric(vertical: 1.8.h),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -263,7 +296,7 @@ class ProfilePage extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              context.read<AuthenticationBloc>().add(LogoutEvent());
+              context.read<AuthenticationCubit>().logout();
             },
             child: const Text('Logout'),
           ),

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
-import '../blocs/anime/anime_bloc.dart';
+import '../blocs/anime/anime_cubit.dart';
+import '../blocs/anime/anime_state.dart';
+import '../blocs/authentication/authentication_cubit.dart';
+import '../blocs/authentication/authentication_state.dart';
 import '../widgets/anime_card.dart';
 import '../widgets/loading_widget.dart';
 import '../../core/constants/app_constants.dart';
 import '../../domain/entities/anime.dart';
-import '../blocs/authentication/authentication_bloc.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,6 +19,12 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // Simpan state filter lokal
+  String _selectedGenre = 'All';
+  String _selectedStudio = 'All';
+  String _selectedStatus = 'All';
+  String _selectedSort = 'Score High-Low';
+
   @override
   void initState() {
     super.initState();
@@ -29,8 +37,8 @@ class _HomePageState extends State<HomePage> {
   void _fetchAnime() {
     print('🔄 HomePage: Fetching anime...');
     try {
-      if (context.read<AnimeBloc>().state is! TopAnimeLoaded) {
-        context.read<AnimeBloc>().add(GetTopAnimeEvent());
+      if (context.read<AnimeCubit>().state is! TopAnimeLoaded) {
+        context.read<AnimeCubit>().getTopAnime();
       }
     } catch (e) {
       print('❌ HomePage: Error fetching anime: $e');
@@ -52,7 +60,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    print('🏠 HomePage: Building widget');
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -63,35 +70,222 @@ class _HomePageState extends State<HomePage> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: const Icon(Icons.filter_list),
+            tooltip: 'Filter & Sort',
+            onPressed: () => _showFilterModal(context),
+          ),
+          IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
-              context.read<AnimeBloc>().add(GetTopAnimeEvent());
+              setState(() {
+                _selectedGenre = 'All';
+                _selectedStudio = 'All';
+                _selectedStatus = 'All';
+                _selectedSort = 'Score High-Low';
+              });
+              context.read<AnimeCubit>().getTopAnime();
             },
           ),
         ],
       ),
-      body: BlocConsumer<AnimeBloc, AnimeState>(
+      body: BlocConsumer<AnimeCubit, AnimeState>(
         listener: (context, state) {
-          print('🏠 HomePage: State changed to ${state.runtimeType}');
           if (state is AnimeError) {
-            print('❌ HomePage: Showing error snackbar: ${state.message}');
             _showErrorSnackBar(state.message);
           }
         },
         builder: (context, state) {
-          print('🏠 HomePage: Building content for state ${state.runtimeType}');
           return _buildScrollableBody(state);
         },
       ),
     );
   }
 
+  void _showFilterModal(BuildContext context) {
+    final state = context.read<AnimeCubit>().state;
+    List<Anime> currentList = [];
+    if (state is TopAnimeLoaded) {
+      currentList = state.animeList;
+    }
+
+    final Set<String> genres = {'All'};
+    final Set<String> studios = {'All'};
+    final Set<String> statuses = {'All'};
+
+    for (var anime in currentList) {
+      // PERBAIKAN: Akses .name dari Object Genre & Studio
+      if (anime.genres != null) {
+        for (var g in anime.genres!) {
+          genres.add(g.name);
+        }
+      }
+      if (anime.studios != null) {
+        for (var s in anime.studios!) {
+          studios.add(s.name);
+        }
+      }
+      if (anime.status != null) statuses.add(anime.status!);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(5.w, 2.h, 5.w, 5.h),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 10.w,
+                        height: 0.5.h,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 3.h),
+                    Text(
+                      'Filter & Sort',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue[900],
+                      ),
+                    ),
+                    SizedBox(height: 3.h),
+
+                    _buildDropdown(
+                      label: 'Sort By',
+                      value: _selectedSort,
+                      items: [
+                        'Score High-Low',
+                        'Score Low-High',
+                        'Title A-Z'
+                      ],
+                      onChanged: (val) {
+                        setModalState(() => _selectedSort = val!);
+                      },
+                    ),
+                    SizedBox(height: 2.h),
+
+                    _buildDropdown(
+                      label: 'Genre',
+                      value: genres.contains(_selectedGenre) ? _selectedGenre : 'All',
+                      items: genres.toList()..sort(),
+                      onChanged: (val) {
+                        setModalState(() => _selectedGenre = val!);
+                      },
+                    ),
+                    SizedBox(height: 2.h),
+
+                    _buildDropdown(
+                      label: 'Studio',
+                      value: studios.contains(_selectedStudio) ? _selectedStudio : 'All',
+                      items: studios.toList()..sort(),
+                      onChanged: (val) {
+                        setModalState(() => _selectedStudio = val!);
+                      },
+                    ),
+                    SizedBox(height: 2.h),
+
+                    _buildDropdown(
+                      label: 'Status',
+                      value: statuses.contains(_selectedStatus) ? _selectedStatus : 'All',
+                      items: statuses.toList()..sort(),
+                      onChanged: (val) {
+                        setModalState(() => _selectedStatus = val!);
+                      },
+                    ),
+                    SizedBox(height: 4.h),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                _selectedGenre = 'All';
+                                _selectedStudio = 'All';
+                                _selectedStatus = 'All';
+                                _selectedSort = 'Score High-Low';
+                              });
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 1.5.h),
+                              side: BorderSide(color: Colors.blue[900]!),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Reset'),
+                          ),
+                        ),
+                        SizedBox(width: 3.w),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              context.read<AnimeCubit>().applyFilterAndSort(
+                                genre: _selectedGenre,
+                                studio: _selectedStudio,
+                                status: _selectedStatus,
+                                sortBy: _selectedSort,
+                              );
+                              setState(() {});
+                              Navigator.pop(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[900],
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 1.5.h),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: const Text('Apply'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildDropdown({
+    required String label,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        contentPadding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+      ),
+      isExpanded: true,
+      items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, overflow: TextOverflow.ellipsis))).toList(),
+      onChanged: onChanged,
+    );
+  }
+
   Widget _buildScrollableBody(AnimeState state) {
-    // Build a single scrollable that includes the welcome card so it scrolls away with content.
     if (state is AnimeLoading || state is AnimeInitial) {
       return RefreshIndicator(
         onRefresh: () async {
-          context.read<AnimeBloc>().add(GetTopAnimeEvent());
+          context.read<AnimeCubit>().getTopAnime();
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -109,7 +303,7 @@ class _HomePageState extends State<HomePage> {
       if (state.animeList.isEmpty) {
         return RefreshIndicator(
           onRefresh: () async {
-            context.read<AnimeBloc>().add(GetTopAnimeEvent());
+            context.read<AnimeCubit>().getTopAnime();
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -126,7 +320,7 @@ class _HomePageState extends State<HomePage> {
       }
       return RefreshIndicator(
         onRefresh: () async {
-          context.read<AnimeBloc>().add(GetTopAnimeEvent());
+          context.read<AnimeCubit>().getTopAnime();
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -138,17 +332,15 @@ class _HomePageState extends State<HomePage> {
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                   maxCrossAxisExtent: 200,
                   childAspectRatio: 0.7,
-                  crossAxisSpacing: 8, // will be scaled by padding above
+                  crossAxisSpacing: 8,
                   mainAxisSpacing: 8,
                 ),
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) {
+                      (context, index) {
                     final anime = state.animeList[index];
-                    print('🏠 HomePage: Building anime card for index $index');
                     return AnimeCard(
                       anime: anime,
                       onTap: () {
-                        print('🏠 HomePage: Tapped anime with ID ${anime.malId}');
                         context.push('/detail', extra: anime.malId);
                       },
                     );
@@ -163,7 +355,7 @@ class _HomePageState extends State<HomePage> {
     } else if (state is AnimeError) {
       return RefreshIndicator(
         onRefresh: () async {
-          context.read<AnimeBloc>().add(GetTopAnimeEvent());
+          context.read<AnimeCubit>().getTopAnime();
         },
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -178,7 +370,6 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     }
-    // Fallback
     _fetchAnime();
     return const LoadingWidget();
   }
@@ -186,7 +377,7 @@ class _HomePageState extends State<HomePage> {
   Widget _buildWelcomeCard() {
     return Padding(
       padding: EdgeInsets.fromLTRB(4.w, 2.h, 4.w, 1.h),
-      child: BlocBuilder<AuthenticationBloc, AuthenticationState>(
+      child: BlocBuilder<AuthenticationCubit, AuthenticationState>(
         builder: (context, authState) {
           String name = 'User';
           if (authState is AuthenticationAuthenticated) {
@@ -215,9 +406,9 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(12.w),
                     ),
                     child: Icon(
-                      Icons.person_outline,
-                      size: 10.w,
-                      color:Color(0xFF0D47A1)
+                        Icons.person_outline,
+                        size: 10.w,
+                        color:Color(0xFF0D47A1)
                     ),
                   ),
                   SizedBox(width: 4.w),
@@ -256,82 +447,18 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildContent(AnimeState state) {
-    if (state is AnimeLoading || state is AnimeInitial) {
-      print('🏠 HomePage: Showing loading state');
-      return const LoadingWidget();
-    } else if (state is TopAnimeLoaded) {
-      print('🏠 HomePage: Showing loaded state with ${state.animeList.length} anime');
-      if (state.animeList.isEmpty) {
-        return _buildEmptyState('No anime found');
-      }
-      return _buildAnimeGrid(state.animeList);
-    } else if (state is AnimeError) {
-      print('🏠 HomePage: Showing error state: ${state.message}');
-      return _buildErrorState(state.message);
-    }
-    print('🏠 HomePage: State tidak relevan, fetch ulang...');
-    _fetchAnime();
-    return const LoadingWidget();
-  }
-
-  Widget _buildAnimeGrid(List<Anime> animeList) {
-    print('🏠 HomePage: Building grid with ${animeList.length} items');
-    return RefreshIndicator(
-      onRefresh: () async {
-        print('🏠 HomePage: Refresh triggered');
-        context.read<AnimeBloc>().add(GetTopAnimeEvent());
-      },
-      child: Padding(
-        padding: EdgeInsets.all(2.w),
-        child: GridView.builder(
-          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 200,
-            childAspectRatio: 0.7,
-            crossAxisSpacing: 2.w,
-            mainAxisSpacing: 2.w,
-          ),
-          itemCount: animeList.length,
-          itemBuilder: (context, index) {
-            final anime = animeList[index];
-            print('🏠 HomePage: Building anime card for index $index');
-            return AnimeCard(
-              anime: anime,
-              onTap: () {
-                print('🏠 HomePage: Tapped anime with ID ${anime.malId}');
-                context.push('/detail', extra: anime.malId);
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
   Widget _buildEmptyState(String message) {
-    // ... (Fungsi ini biarkan sama) ...
-    print('🏠 HomePage: Building empty state: $message');
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.tv_off,
-            size: 20.w,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.tv_off, size: 20.w, color: Colors.grey[400]),
           SizedBox(height: 2.h),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: 16.sp,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
+          Text(message, style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]), textAlign: TextAlign.center),
           SizedBox(height: 2.h),
           ElevatedButton(
             onPressed: () {
-              context.read<AnimeBloc>().add(GetTopAnimeEvent());
+              context.read<AnimeCubit>().getTopAnime();
             },
             child: const Text('Retry'),
           ),
@@ -341,39 +468,22 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildErrorState(String message) {
-    // ... (Fungsi ini biarkan sama) ...
-    print('🏠 HomePage: Building error state: $message');
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 20.w,
-            color: Colors.red[400],
-          ),
+          Icon(Icons.error_outline, size: 20.w, color: Colors.red[400]),
           SizedBox(height: 2.h),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 5.w),
-            child: Text(
-              'Error loading data',
-              style: TextStyle(fontSize: 16.sp),
-              textAlign: TextAlign.center,
-            ),
+            child: Text('Error loading data', style: TextStyle(fontSize: 16.sp), textAlign: TextAlign.center),
           ),
           SizedBox(height: 1.h),
-          Text(
-            message,
-            style: TextStyle(
-              fontSize: 12.sp,
-              color: Colors.grey[600],
-            ),
-            textAlign: TextAlign.center,
-          ),
+          Text(message, style: TextStyle(fontSize: 12.sp, color: Colors.grey[600]), textAlign: TextAlign.center),
           SizedBox(height: 2.h),
           ElevatedButton(
             onPressed: () {
-              context.read<AnimeBloc>().add(GetTopAnimeEvent());
+              context.read<AnimeCubit>().getTopAnime();
             },
             child: const Text('Retry'),
           ),

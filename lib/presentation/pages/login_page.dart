@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
-import '../blocs/authentication/authentication_bloc.dart';
+// UBAH: Import Cubit dan State
+import '../blocs/authentication/authentication_cubit.dart';
+import '../blocs/authentication/authentication_state.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
-import '../widgets/responsive_center_layout.dart'; // IMPORT WIDGET BARU
+import '../widgets/responsive_center_layout.dart';
 
 class LoginPage extends StatefulWidget {
   LoginPage({super.key});
@@ -24,13 +26,13 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blue[50],
-      // TAMBAHKAN: AppBar agar konsisten
       appBar: AppBar(
         title: const Text('Login'),
         backgroundColor: Colors.blue[900],
         foregroundColor: Colors.white,
       ),
-      body: BlocListener<AuthenticationBloc, AuthenticationState>(
+      // UBAH: BlocListener<AuthenticationCubit, ...>
+      body: BlocListener<AuthenticationCubit, AuthenticationState>(
         listener: (context, state) {
           if (state is AuthenticationAuthenticated) {
             context.go('/main');
@@ -43,20 +45,16 @@ class _LoginPageState extends State<LoginPage> {
             );
           }
         },
-        // BUNGKUS: dengan SingleChildScrollView
         child: SingleChildScrollView(
-          child: ResponsiveCenterLayout( // BUNGKUS: dengan ResponsiveCenterLayout
+          child: ResponsiveCenterLayout(
             child: Padding(
               padding: EdgeInsets.all(5.w),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  // UBAH: mainAxisAlignment agar tidak di tengah
-                  // Biarkan layout responsif yang mengaturnya
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // TAMBAHKAN: Spasi dari atas
                     SizedBox(height: 10.h),
                     Text(
                       'Welcome Back',
@@ -104,7 +102,8 @@ class _LoginPageState extends State<LoginPage> {
                       },
                     ),
                     SizedBox(height: 3.h),
-                    BlocBuilder<AuthenticationBloc, AuthenticationState>(
+                    // UBAH: BlocBuilder<AuthenticationCubit, ...>
+                    BlocBuilder<AuthenticationCubit, AuthenticationState>(
                       builder: (context, state) {
                         if (state is AuthenticationLoading) {
                           return const CircularProgressIndicator();
@@ -113,11 +112,10 @@ class _LoginPageState extends State<LoginPage> {
                           text: 'Login',
                           onPressed: () {
                             if (_formKey.currentState!.validate()) {
-                              context.read<AuthenticationBloc>().add(
-                                LoginEvent(
-                                  email: _emailController.text,
-                                  password: _passwordController.text,
-                                ),
+                              // UBAH: Panggil function login()
+                              context.read<AuthenticationCubit>().login(
+                                _emailController.text,
+                                _passwordController.text,
                               );
                             }
                           },
@@ -137,7 +135,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ),
                     ),
-                    SizedBox(height: 10.h), // Spasi di bawah
+                    SizedBox(height: 10.h),
                   ],
                 ),
               ),

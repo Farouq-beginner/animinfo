@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
-import '../blocs/authentication/authentication_bloc.dart';
+// UBAH: Import Cubit dan State
+import '../blocs/authentication/authentication_cubit.dart';
+import '../blocs/authentication/authentication_state.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/responsive_center_layout.dart';
@@ -25,13 +27,13 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.blue[50],
-      // TAMBAHKAN: AppBar
       appBar: AppBar(
         title: const Text('Create Account'),
         backgroundColor: Colors.blue[900],
         foregroundColor: Colors.white,
       ),
-      body: BlocListener<AuthenticationBloc, AuthenticationState>(
+      // UBAH: BlocListener<AuthenticationCubit, ...>
+      body: BlocListener<AuthenticationCubit, AuthenticationState>(
         listener: (context, state) {
           if (state is AuthenticationAuthenticated) {
             context.go('/main');
@@ -44,20 +46,16 @@ class _RegisterPageState extends State<RegisterPage> {
             );
           }
         },
-        // BUNGKUS: dengan SingleChildScrollView
         child: SingleChildScrollView(
           child: ResponsiveCenterLayout(
-            // BUNGKUS: dengan ResponsiveCenterLayout
             child: Padding(
               padding: EdgeInsets.all(5.w),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  // UBAH: mainAxisAlignment
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // TAMBAHKAN: Spasi dari atas
                     SizedBox(height: 10.h),
                     Text(
                       'Create Account',
@@ -117,7 +115,8 @@ class _RegisterPageState extends State<RegisterPage> {
                       },
                     ),
                     SizedBox(height: 3.h),
-                    BlocBuilder<AuthenticationBloc, AuthenticationState>(
+                    // UBAH: BlocBuilder<AuthenticationCubit, ...>
+                    BlocBuilder<AuthenticationCubit, AuthenticationState>(
                       builder: (context, state) {
                         if (state is AuthenticationLoading) {
                           return const CircularProgressIndicator();
@@ -126,12 +125,11 @@ class _RegisterPageState extends State<RegisterPage> {
                           text: 'Register',
                           onPressed: () {
                             if (_formKey.currentState!.validate()) {
-                              context.read<AuthenticationBloc>().add(
-                                RegisterEvent(
-                                  username: _usernameController.text,
-                                  email: _emailController.text,
-                                  password: _passwordController.text,
-                                ),
+                              // UBAH: Panggil function register()
+                              context.read<AuthenticationCubit>().register(
+                                _usernameController.text,
+                                _emailController.text,
+                                _passwordController.text,
                               );
                             }
                           },
@@ -151,7 +149,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ),
                     ),
-                    SizedBox(height: 10.h), // Spasi di bawah
+                    SizedBox(height: 10.h),
                   ],
                 ),
               ),

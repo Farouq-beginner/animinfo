@@ -1,4 +1,5 @@
-part of 'anime_bloc.dart';
+import 'package:equatable/equatable.dart';
+import '../../../domain/entities/anime.dart';
 
 abstract class AnimeState extends Equatable {
   const AnimeState();

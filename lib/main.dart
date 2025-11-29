@@ -22,16 +22,17 @@ import 'domain/usecases/login_user.dart';
 import 'domain/usecases/register_user.dart';
 import 'domain/usecases/get_current_user.dart';
 import 'domain/usecases/logout_user.dart';
-import 'presentation/blocs/anime/anime_bloc.dart';
-import 'presentation/blocs/authentication/authentication_bloc.dart';
-import 'presentation/blocs/splash/splash_bloc.dart';
+
+// UBAH: Import Cubit, bukan Bloc
+import 'presentation/blocs/anime/anime_cubit.dart';
+import 'presentation/blocs/authentication/authentication_cubit.dart';
+import 'presentation/blocs/splash/splash_cubit.dart';
 
 final sl = ServiceLocator();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Add global error handling
   FlutterError.onError = (FlutterErrorDetails details) {
     print('Global error: ${details.exception}');
     print('Stack trace: ${details.stack}');
@@ -39,7 +40,6 @@ void main() async {
 
   await sl.init();
 
-  // Use path-based URL strategy on web to remove '/#/' from routes
   if (kIsWeb) {
     setUrlStrategy(PathUrlStrategy());
   }
@@ -53,18 +53,18 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Sizer(
       builder: (context, orientation, deviceType) {
-        // HAPUS MultiRepositoryProvider, sudah di-handle oleh SL.
-        // Ganti dengan MultiBlocProvider untuk BLoC global
+        // UBAH: Gunakan Cubit di sini
         return MultiBlocProvider(
           providers: [
-            BlocProvider<SplashBloc>(
-              create: (context) => sl<SplashBloc>(),
+            BlocProvider<SplashCubit>(
+              create: (context) => sl<SplashCubit>(),
             ),
-            BlocProvider<AuthenticationBloc>(
-              create: (context) => sl<AuthenticationBloc>()..add(CheckAuthStatusEvent()), // Cek status login saat app mulai
+            BlocProvider<AuthenticationCubit>(
+              // Panggil function checkAuthStatus() dari Cubit
+              create: (context) => sl<AuthenticationCubit>()..checkAuthStatus(),
             ),
-            BlocProvider<AnimeBloc>(
-              create: (context) => sl<AnimeBloc>(), // Biarkan HomePage yang memicu fetch
+            BlocProvider<AnimeCubit>(
+              create: (context) => sl<AnimeCubit>(),
             ),
           ],
           child: MaterialApp.router(
@@ -83,7 +83,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// ... (Kelas ServiceLocator biarkan sama persis) ...
 class ServiceLocator {
   late Dio _dio;
   late SharedPreferences _sharedPreferences;
@@ -143,65 +142,44 @@ class ServiceLocator {
   }
 
   T call<T>() {
-    switch (T) {
-      case Dio:
-        return _dio as T;
-      case SharedPreferences:
-        return _sharedPreferences as T;
-      case NetworkInfo:
-        return _networkInfo as T;
-      case AppPreferences:
-        return _appPreferences as T;
-      case AnimeRemoteDataSource:
-        return _animeRemoteDataSource as T;
-      case AuthenticationLocalDataSource:
-        return _authenticationLocalDataSource as T;
-      case AnimeRepository:
-        return _animeRepository as T;
-      case AuthenticationRepository:
-        return _authenticationRepository as T;
-      case GetTopAnime:
-        return _getTopAnime as T;
-      case GetAnimeDetails:
-        return _getAnimeDetails as T;
-      case SearchAnime:
-        return _searchAnime as T;
-      case LoginUser:
-        return _loginUser as T;
-      case RegisterUser:
-        return _registerUser as T;
-      case GetCurrentUser:
-        return _getCurrentUser as T;
-      case LogoutUser:
-        return _logoutUser as T;
-      case SplashBloc:
-        return SplashBloc(getCurrentUser: _getCurrentUser) as T;
-      case AuthenticationBloc:
-        return AuthenticationBloc(
-          loginUser: _loginUser,
-          registerUser: _registerUser,
-          getCurrentUser: _getCurrentUser,
-          logoutUser: _logoutUser,
-        ) as T;
-      case AnimeBloc:
-        return AnimeBloc(
-          getTopAnime: _getTopAnime,
-          getAnimeDetails: _getAnimeDetails,
-          searchAnime: _searchAnime,
-        ) as T;
-      default:
-        throw Exception('Service not found');
+    // Registrasi Cubit
+    if (T == SplashCubit) {
+      return SplashCubit(getCurrentUser: _getCurrentUser) as T;
     }
-  }
-}
+    if (T == AuthenticationCubit) {
+      return AuthenticationCubit(
+        loginUser: _loginUser,
+        registerUser: _registerUser,
+        getCurrentUser: _getCurrentUser,
+        logoutUser: _logoutUser,
+      ) as T;
+    }
+    if (T == AnimeCubit) {
+      return AnimeCubit(
+        getTopAnime: _getTopAnime,
+        getAnimeDetails: _getAnimeDetails,
+        searchAnime: _searchAnime,
+      ) as T;
+    }
 
-void testApi() async {
-  try {
-    final dio = Dio();
-    final response = await dio.get('https://api.jikan.moe/v4/top/anime');
-    print('API Test Response: ${response.statusCode}');
-    print('API Test Data: ${response.data}');
-  } catch (e) {
-    print('API Test Error: $e');
+    // Registrasi dependensi lainnya
+    switch (T) {
+      case Dio: return _dio as T;
+      case SharedPreferences: return _sharedPreferences as T;
+      case NetworkInfo: return _networkInfo as T;
+      case AppPreferences: return _appPreferences as T;
+      case AnimeRemoteDataSource: return _animeRemoteDataSource as T;
+      case AuthenticationLocalDataSource: return _authenticationLocalDataSource as T;
+      case AnimeRepository: return _animeRepository as T;
+      case AuthenticationRepository: return _authenticationRepository as T;
+      case GetTopAnime: return _getTopAnime as T;
+      case GetAnimeDetails: return _getAnimeDetails as T;
+      case SearchAnime: return _searchAnime as T;
+      case LoginUser: return _loginUser as T;
+      case RegisterUser: return _registerUser as T;
+      case GetCurrentUser: return _getCurrentUser as T;
+      case LogoutUser: return _logoutUser as T;
+      default: throw Exception('Service not found for type $T');
+    }
   }
 }

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sizer/sizer.dart';
-import '../blocs/splash/splash_bloc.dart';
+// UBAH: Import Cubit dan State terpisah
+import '../blocs/splash/splash_cubit.dart';
+import '../blocs/splash/splash_state.dart';
 import '../../core/constants/app_constants.dart';
 
 class SplashPage extends StatelessWidget {
@@ -12,7 +14,8 @@ class SplashPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => sl<SplashBloc>()..add(CheckLoginStatusEvent()),
+      // UBAH: Panggil function checkLoginStatus(), bukan add(Event)
+      create: (context) => sl<SplashCubit>()..checkLoginStatus(),
       child: const SplashView(),
     );
   }
@@ -23,13 +26,11 @@ class SplashView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<SplashBloc, SplashState>(
+    return BlocListener<SplashCubit, SplashState>(
       listener: (context, state) {
         if (state is SplashAuthenticated) {
-          // Use GoRouter instead of Navigator
           context.go('/main');
         } else if (state is SplashUnauthenticated) {
-          // Use GoRouter instead of Navigator
           context.go('/login');
         }
       },
@@ -37,12 +38,10 @@ class SplashView extends StatelessWidget {
         backgroundColor: Colors.blue[900],
         body: Stack(
           children: [
-            // Center content
             Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Logo
                   Container(
                     width: 30.w,
                     height: 30.w,
@@ -71,8 +70,7 @@ class SplashView extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 3.h),
-                  // Loading indicator with text
-                  BlocBuilder<SplashBloc, SplashState>(
+                  BlocBuilder<SplashCubit, SplashState>(
                     builder: (context, state) {
                       if (state is SplashLoading) {
                         return Column(
@@ -101,8 +99,6 @@ class SplashView extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Footer credit at bottom
             Positioned(
               left: 0,
               right: 0,

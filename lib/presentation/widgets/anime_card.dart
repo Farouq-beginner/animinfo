@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:sizer/sizer.dart';
-import '../../domain/entities/anime.dart'; // Import entity Anime
+import 'package:auto_size_text/auto_size_text.dart';
+import '../../domain/entities/anime.dart';
 
 class AnimeCard extends StatelessWidget {
   final Anime anime;
@@ -25,7 +26,7 @@ class AnimeCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.1),
@@ -36,16 +37,16 @@ class AnimeCard extends StatelessWidget {
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Image
+              // Image Section
               Expanded(
-                flex: 3,
+                flex: 6,
                 child: Container(
                   width: double.infinity,
-                  color: Colors.grey[300], // Warna placeholder
+                  color: Colors.grey[300],
                   child: imageUrl.isNotEmpty
                       ? Image.network(
                     imageUrl,
@@ -70,54 +71,56 @@ class AnimeCard extends StatelessWidget {
                 ),
               ),
 
-              // Content
+              // Content Section
               Expanded(
-                flex: 2,
+                flex: 4, // Ruang untuk teks
                 child: Padding(
-                  padding: EdgeInsets.all(2.w),
+                  padding: EdgeInsets.symmetric(horizontal: 2.w, vertical: 1.h),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Title
-                      Text(
+                      AutoSizeText(
                         title,
                         style: TextStyle(
-                          fontSize: 15.sp,
+                          fontSize: 14.sp,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black87,
                         ),
                         maxLines: 2,
+                        minFontSize: 8,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      SizedBox(height: 0.5.h),
 
-                      // Type and Episodes
-                      if (type != null && episodes != null)
-                        Text(
-                          '$type • $episodes eps',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: Colors.grey[600],
-                          ),
+                      // TYPE & EPS
+                      AutoSizeText(
+                        '${type ?? '?'} • ${episodes ?? '?'} eps',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          color: Colors.grey[600],
                         ),
+                        maxLines: 1,
+                        minFontSize: 6,
+                        overflow: TextOverflow.ellipsis,
+                      ),
 
-                      const Spacer(), // Dorong score ke bawah
-
-                      // Score
                       if (score != null)
                         Row(
                           children: [
                             Icon(
                               Icons.star,
                               color: Colors.amber,
-                              size: 5.w,
+                              size: 14.sp,
                             ),
-                            SizedBox(width: 0.5.w),
-                            Text(
+                            SizedBox(width: 1.w),
+                            AutoSizeText(
                               score.toStringAsFixed(2),
                               style: TextStyle(
-                                fontSize: 14.sp,
+                                fontSize: 11.sp,
                                 fontWeight: FontWeight.bold,
+                                color: Colors.blue[900],
                               ),
+                              maxLines: 1,
                             ),
                           ],
                         ),
@@ -141,16 +144,8 @@ class AnimeCard extends StatelessWidget {
           children: [
             Icon(
               Icons.image_not_supported,
-              size: 10.w,
+              size: 20.sp,
               color: Colors.grey[600],
-            ),
-            SizedBox(height: 1.h),
-            Text(
-              'No Image',
-              style: TextStyle(
-                fontSize: 8.sp,
-                color: Colors.grey[600],
-              ),
             ),
           ],
         ),

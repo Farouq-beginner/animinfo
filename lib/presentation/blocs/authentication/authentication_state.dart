@@ -1,4 +1,5 @@
-part of 'authentication_bloc.dart';
+import 'package:api_anime/domain/entities/user.dart';
+import 'package:equatable/equatable.dart';
 
 abstract class AuthenticationState extends Equatable {
   const AuthenticationState();
