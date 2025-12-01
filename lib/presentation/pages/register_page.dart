@@ -36,7 +36,7 @@ class _RegisterPageState extends State<RegisterPage> {
       body: BlocListener<AuthenticationCubit, AuthenticationState>(
         listener: (context, state) {
           if (state is AuthenticationAuthenticated) {
-            context.go('/main');
+            context.go('/home');
           } else if (state is AuthenticationError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

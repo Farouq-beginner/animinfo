@@ -29,14 +29,12 @@ class AboutPage extends StatelessWidget {
                   color: Colors.blue[900],
                   borderRadius: BorderRadius.circular(15.w),
                 ),
-                child: Center(
-                  child: Text(
-                    'A',
-                    style: TextStyle(
-                      fontSize: 15.w,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                clipBehavior: Clip.antiAlias,
+                child: Padding(
+                  padding: EdgeInsets.all(0.w),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),

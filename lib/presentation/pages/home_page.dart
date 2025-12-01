@@ -341,7 +341,10 @@ class _HomePageState extends State<HomePage> {
                     return AnimeCard(
                       anime: anime,
                       onTap: () {
-                        context.push('/detail', extra: anime.malId);
+                        context.goNamed(
+                          'home-detail',
+                          pathParameters: {'id': anime.malId.toString()},
+                        );
                       },
                     );
                   },

@@ -86,7 +86,10 @@ class _FavoritesPageState extends State<FavoritesPage> {
                           (anime) => AnimeCard(
                         anime: anime,
                         onTap: () {
-                          context.push('/detail', extra: anime.malId);
+                          context.goNamed(
+                            'favorites-detail',
+                            pathParameters: {'id': anime.malId.toString()},
+                          );
                         },
                       ),
                     );

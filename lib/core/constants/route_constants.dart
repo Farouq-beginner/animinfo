@@ -4,7 +4,7 @@ class RouteConstants {
   static const String register = '/register';
   static const String home = '/home';
   static const String main = '/main';
-  static const String detail = '/detail';
+  static const String detail = '/detail/:id';
   static const String search = '/search';
   static const String favorites = '/favorites';
   static const String profile = '/profile';

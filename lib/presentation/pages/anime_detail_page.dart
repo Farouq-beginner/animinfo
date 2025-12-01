@@ -2,6 +2,7 @@ import 'package:api_anime/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/services.dart';
 import 'package:sizer/sizer.dart';
 import 'package:auto_size_text/auto_size_text.dart'; // IMPORT BARU
 // Import Cubit dan State
@@ -49,6 +50,18 @@ class _AnimeDetailPageState extends State<AnimeDetailPage> {
           },
         ),
         actions: [
+          IconButton(
+            tooltip: 'Copy link',
+            icon: const Icon(Icons.link),
+            onPressed: () async {
+              final path = '/search/detail/${widget.animeId}';
+              await Clipboard.setData(ClipboardData(text: path));
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Link copied: $path')),
+              );
+            },
+          ),
           StatefulBuilder(
             builder: (context, setStateIcon) {
               return IconButton(

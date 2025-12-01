@@ -150,7 +150,10 @@ class _SearchPageState extends State<SearchPage> {
         return AnimeCard(
           anime: anime,
           onTap: () {
-            context.push('/detail', extra: anime.malId);
+            context.goNamed(
+              'search-detail',
+              pathParameters: {'id': anime.malId.toString()},
+            );
           },
         );
       },

@@ -29,7 +29,7 @@ class SplashView extends StatelessWidget {
     return BlocListener<SplashCubit, SplashState>(
       listener: (context, state) {
         if (state is SplashAuthenticated) {
-          context.go('/main');
+          context.go('/home');
         } else if (state is SplashUnauthenticated) {
           context.go('/login');
         }
@@ -43,20 +43,18 @@ class SplashView extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
-                    width: 30.w,
-                    height: 30.w,
+                    width: 55.w,
+                    height: 55.w,
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(15.w),
                     ),
-                    child: Center(
-                      child: Text(
-                        'A',
-                        style: TextStyle(
-                          fontSize: 20.w,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue[900],
-                        ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Padding(
+                      padding: EdgeInsets.all(0.w),
+                      child: Image.asset(
+                        'assets/images/logo.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
