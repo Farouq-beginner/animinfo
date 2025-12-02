@@ -130,7 +130,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: Text(
                         'Don\'t have an account? Register',
                         style: TextStyle(
-                          fontSize: 12.sp,
+                          fontSize: 15.sp,
                           color: Colors.blue[900],
                         ),
                       ),
