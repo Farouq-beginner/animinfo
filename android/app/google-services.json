@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "998290823848",
+    "project_id": "animinfo-84786",
+    "storage_bucket": "animinfo-84786.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:998290823848:android:f9c5caf90ceee794b0c09d",
+        "android_client_info": {
+          "package_name": "com.example.api_anime"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAS1JLyBH20O51ukVVShdfnxhYQFYykpKc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,13 +7,15 @@ import 'package:sizer/sizer.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app_router.dart';
+import 'firebase_options.dart';
 import 'core/constants/app_constants.dart';
 import 'core/network/network_info.dart';
 import 'core/utils/app_prefs.dart';
 import 'data/datasources/local/authentication_local_datasource.dart';
 import 'data/datasources/remote/anime_remote_datasource.dart';
 import 'data/repositories/anime_repository_impl.dart';
-import 'data/repositories/authentication_repository_impl.dart';
+// import 'data/repositories/authentication_repository_impl.dart'; // replaced by Firebase repo
+import 'data/repositories/firebase_authentication_repository_impl.dart';
 import 'domain/repositories/anime_repository.dart';
 import 'domain/repositories/authentication_repository.dart';
 import 'domain/usecases/get_top_anime.dart';
@@ -32,11 +35,13 @@ final sl = ServiceLocator();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   FlutterError.onError = (FlutterErrorDetails details) {
     print('Global error: ${details.exception}');
     print('Stack trace: ${details.stack}');
   };
+
+  // Initialize Firebase exactly once with generated options
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await sl.init();
 
@@ -96,6 +101,8 @@ class ServiceLocator {
   // Repositories
   late AnimeRepository _animeRepository;
   late AuthenticationRepository _authenticationRepository;
+  // Firebase auth instance
+  // We keep type loose; repository holds FirebaseAuth internally.
 
   // Use Cases
   late GetTopAnime _getTopAnime;
@@ -126,10 +133,8 @@ class ServiceLocator {
       remoteDataSource: _animeRemoteDataSource,
       networkInfo: _networkInfo,
     );
-    _authenticationRepository = AuthenticationRepositoryImpl(
-      localDataSource: _authenticationLocalDataSource,
-      appPreferences: _appPreferences,
-    );
+    // Use Firebase-backed auth repository instead of local preference auth.
+    _authenticationRepository = FirebaseAuthenticationRepositoryImpl();
 
     // Use Cases
     _getTopAnime = GetTopAnime(_animeRepository);

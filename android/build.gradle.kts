@@ -1,3 +1,6 @@
+// Plugin versions are managed in settings.gradle.kts (via pluginManagement/plugins).
+// Remove duplicate google-services plugin version declaration to avoid classpath conflicts.
+
 allprojects {
     repositories {
         google()
@@ -12,6 +15,7 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+
 subprojects {
     project.evaluationDependsOn(":app")
 }
